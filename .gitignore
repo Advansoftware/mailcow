@@ -1,0 +1,22 @@
+# Arquivos de Configuração Sensíveis (NUNCA SUBIR)
+config.env
+mailcow.conf
+mailcow-dockerized/mailcow.conf
+mailcow-dockerized/.env
+
+# Dados e Volumes
+mailcow-dockerized/data/
+**/data/assets/ssl/**
+**/data/conf/rspamd/override.d/worker-controller-password.inc
+
+# Backups
+*.backup
+*.bak
+mailcow.conf_backup
+
+# Logs
+*.log
+automation/report.txt
+
+# Docker
+.docker_stats
