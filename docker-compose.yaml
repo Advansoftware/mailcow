@@ -15,6 +15,8 @@ services:
           ipv4_address: ${IPV4_NETWORK:-172.22.1}.254
           aliases:
             - unbound
+      labels:
+        - "coolify.proxy.managed=false"
 
     mysql-mailcow:
       image: mariadb:10.11
@@ -40,6 +42,8 @@ services:
         mailcow-network:
           aliases:
             - mysql
+      labels:
+        - "coolify.proxy.managed=false"
 
     redis-mailcow:
       image: redis:7.4.6-alpine
@@ -63,6 +67,8 @@ services:
           ipv4_address: ${IPV4_NETWORK:-172.22.1}.249
           aliases:
             - redis
+      labels:
+        - "coolify.proxy.managed=false"
 
     clamd-mailcow:
       image: ghcr.io/mailcow/clamd:1.71
@@ -82,6 +88,8 @@ services:
         mailcow-network:
           aliases:
             - clamd
+      labels:
+        - "coolify.proxy.managed=false"
 
     rspamd-mailcow:
       image: ghcr.io/mailcow/rspamd:3.14.3-1
@@ -115,6 +123,8 @@ services:
         mailcow-network:
           aliases:
             - rspamd
+      labels:
+        - "coolify.proxy.managed=false"
 
     php-fpm-mailcow:
       image: ghcr.io/mailcow/phpfpm:8.2.29-2
@@ -380,6 +390,8 @@ services:
           ipv4_address: ${IPV4_NETWORK:-172.22.1}.253
           aliases:
             - postfix
+      labels:
+        - "coolify.proxy.managed=false"
 
     postfix-tlspol-mailcow:
       image: ghcr.io/mailcow/postfix-tlspol:1.8.23
@@ -402,6 +414,8 @@ services:
         mailcow-network:
           aliases:
             - postfix-tlspol
+      labels:
+        - "coolify.proxy.managed=false"
 
     memcached-mailcow:
       image: memcached:alpine
@@ -412,6 +426,8 @@ services:
         mailcow-network:
           aliases:
             - memcached
+      labels:
+        - "coolify.proxy.managed=false"
 
     nginx-mailcow:
       depends_on:
@@ -507,6 +523,8 @@ services:
         mailcow-network:
           aliases:
             - acme
+      labels:
+        - "coolify.proxy.managed=false"
 
     netfilter-mailcow:
       image: ghcr.io/mailcow/netfilter:1.64
@@ -524,6 +542,8 @@ services:
         - REDISPASS=${REDISPASS}
         - MAILCOW_REPLICA_IP=${MAILCOW_REPLICA_IP:-}
         - DISABLE_NETFILTER_ISOLATION_RULE=${DISABLE_NETFILTER_ISOLATION_RULE:-n}
+      labels:
+        - "coolify.proxy.managed=false"
       network_mode: "host"
       volumes:
         - /lib/modules:/lib/modules:ro
@@ -602,6 +622,8 @@ services:
         mailcow-network:
           aliases:
             - watchdog
+      labels:
+        - "coolify.proxy.managed=false"
 
     dockerapi-mailcow:
       image: ghcr.io/mailcow/dockerapi:2.12
@@ -622,6 +644,8 @@ services:
         mailcow-network:
           aliases:
             - dockerapi
+      labels:
+        - "coolify.proxy.managed=false"
 
     olefy-mailcow:
       image: ghcr.io/mailcow/olefy:1.15
@@ -641,6 +665,8 @@ services:
         mailcow-network:
           aliases:
             - olefy
+      labels:
+        - "coolify.proxy.managed=false"
 
     ofelia-mailcow:
       image: mcuadros/ofelia:latest
