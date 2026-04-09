@@ -25,11 +25,18 @@ cd mailcow-dockerized || exit
 # 3. Gerar mailcow.conf (Bypass interativo)
 echo "Gerando mailcow.conf com FQDN: $MAILCOW_HOSTNAME"
 # Respostas para o script: Hostname, Timezone, Branch (1=master)
-# O script pede confirmação se o arquivo já existir.
 export MAILCOW_HOSTNAME=$MAILCOW_HOSTNAME
 export MAILCOW_TZ=$MAILCOW_TZ
 ln -sf mailcow.conf .env
 printf "%s\n%s\n1\n" "$MAILCOW_HOSTNAME" "$MAILCOW_TZ" | ./generate_config.sh
+
+# 3.1 Ajustar portas para o Coolify (Substituir no mailcow.conf gerado)
+if [ ! -z "$HTTP_PORT" ]; then
+    sed -i "s/HTTP_PORT=80/HTTP_PORT=$HTTP_PORT/" mailcow.conf
+fi
+if [ ! -z "$HTTPS_PORT" ]; then
+    sed -i "s/HTTPS_PORT=443/HTTPS_PORT=$HTTPS_PORT/" mailcow.conf
+fi
 
 # 4. Iniciar Containers
 echo "Iniciando Docker Compose..."
