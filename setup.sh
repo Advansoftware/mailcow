@@ -14,13 +14,11 @@ else
     exit 1
 fi
 
-# 2. Configurar o repositório base se não existir
-if [ ! -d "mailcow-dockerized" ]; then
-    echo "Clonando repositório oficial do Mailcow..."
-    git clone https://github.com/mailcow/mailcow-dockerized.git
+# 2. Verificar se o Docker Compose existe
+if [ ! -f "docker-compose.yaml" ]; then
+    echo "Erro: docker-compose.yaml não encontrado na raiz!"
+    exit 1
 fi
-
-cd mailcow-dockerized || exit
 
 # 3. Gerar mailcow.conf (Bypass interativo)
 echo "Gerando mailcow.conf com FQDN: $MAILCOW_HOSTNAME"
@@ -47,7 +45,7 @@ docker compose up -d
 echo "Aguardando serviços iniciarem (60s)..."
 sleep 60
 
-cd ../automation || exit
+cd automation || exit
 chmod +x *.sh
 
 echo "Injetando Chave API..."
