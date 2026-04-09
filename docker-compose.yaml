@@ -2,6 +2,9 @@ services:
 
     unbound-mailcow:
       image: ghcr.io/mailcow/unbound:1.25
+      depends_on:
+        init-mailcow:
+          condition: service_completed_successfully
       environment:
         - TZ=${TZ}
         - SKIP_UNBOUND_HEALTHCHECK=${SKIP_UNBOUND_HEALTHCHECK:-n}
@@ -21,8 +24,12 @@ services:
     mysql-mailcow:
       image: mariadb:10.11
       depends_on:
-        - unbound-mailcow
-        - netfilter-mailcow
+        init-mailcow:
+          condition: service_completed_successfully
+        unbound-mailcow:
+          condition: service_healthy
+        netfilter-mailcow:
+          condition: service_started
       stop_grace_period: 45s
       volumes:
         - mysql-vol-1:/var/lib/mysql/
@@ -53,7 +60,10 @@ services:
         - ./data/conf/redis/redis-conf.sh:/redis-conf.sh:z
       restart: always
       depends_on:
-        - netfilter-mailcow
+        init-mailcow:
+          condition: service_completed_successfully
+        netfilter-mailcow:
+          condition: service_started
 #      ports:
 #        - "${REDIS_PORT:-127.0.0.1:7654}:6379"
       environment:
@@ -95,8 +105,12 @@ services:
       image: ghcr.io/mailcow/rspamd:3.14.3-1
       stop_grace_period: 30s
       depends_on:
-        - dovecot-mailcow
-        - clamd-mailcow
+        init-mailcow:
+          condition: service_completed_successfully
+        dovecot-mailcow:
+          condition: service_started
+        clamd-mailcow:
+          condition: service_healthy
       environment:
         - TZ=${TZ}
         - IPV4_NETWORK=${IPV4_NETWORK:-172.22.1}
@@ -130,7 +144,10 @@ services:
       image: ghcr.io/mailcow/phpfpm:8.2.29-2
       command: "php-fpm -d date.timezone=${TZ} -d expose_php=0"
       depends_on:
-        - redis-mailcow
+        init-mailcow:
+          condition: service_completed_successfully
+        redis-mailcow:
+          condition: service_started
       volumes:
         - ./data/hooks/phpfpm:/hooks:Z
         - ./data/web:/web:z
@@ -211,6 +228,9 @@ services:
 
     sogo-mailcow:
       image: ghcr.io/mailcow/sogo:5.12.5-3
+      depends_on:
+        init-mailcow:
+          condition: service_completed_successfully
       environment:
         - DBNAME=${DBNAME}
         - DBUSER=${DBUSER}
@@ -264,9 +284,14 @@ services:
     dovecot-mailcow:
       image: ghcr.io/mailcow/dovecot:2.3.21.1-2
       depends_on:
-        - mysql-mailcow
-        - netfilter-mailcow
-        - redis-mailcow
+        init-mailcow:
+          condition: service_completed_successfully
+        mysql-mailcow:
+          condition: service_started
+        netfilter-mailcow:
+          condition: service_started
+        redis-mailcow:
+          condition: service_started
       dns:
         - ${IPV4_NETWORK:-172.22.1}.254
       cap_add:
@@ -357,6 +382,8 @@ services:
           condition: service_healthy
         postfix-tlspol-mailcow:
           condition: service_started
+        init-mailcow:
+          condition: service_completed_successfully
       volumes:
         - ./data/hooks/postfix:/hooks:Z
         - ./data/conf/postfix:/opt/postfix/conf:z
@@ -431,10 +458,16 @@ services:
 
     nginx-mailcow:
       depends_on:
-        - redis-mailcow
-        - php-fpm-mailcow
-        - sogo-mailcow
-        - rspamd-mailcow
+        init-mailcow:
+          condition: service_completed_successfully
+        redis-mailcow:
+          condition: service_started
+        php-fpm-mailcow:
+          condition: service_started
+        sogo-mailcow:
+          condition: service_started
+        rspamd-mailcow:
+          condition: service_started
       image: ghcr.io/mailcow/nginx:1.06
       dns:
         - ${IPV4_NETWORK:-172.22.1}.254
@@ -471,8 +504,12 @@ services:
         - "${HTTP_BIND:-}:${HTTP_PORT:-80}:${HTTP_PORT:-80}"
       restart: always
       labels:
+        - "coolify.proxy.managed=true"
         - "coolify.managed=true"
         - "coolify.z-order=0"
+        - "traefik.enable=true"
+        - "traefik.http.routers.mailcow-ui.rule=Host(`${MAILCOW_HOSTNAME}`)"
+        - "traefik.http.services.mailcow-ui.loadbalancer.server.port=80"
       networks:
         mailcow-network:
           aliases:
@@ -480,6 +517,8 @@ services:
 
     acme-mailcow:
       depends_on:
+        init-mailcow:
+          condition: service_completed_successfully
         nginx-mailcow:
           condition: service_started
         unbound-mailcow:
@@ -561,11 +600,18 @@ services:
         - ./data/assets/ssl:/etc/ssl/mail/:ro,z
       restart: always
       depends_on:
-        - postfix-mailcow
-        - dovecot-mailcow
-        - mysql-mailcow
-        - acme-mailcow
-        - redis-mailcow
+        init-mailcow:
+          condition: service_completed_successfully
+        postfix-mailcow:
+          condition: service_started
+        dovecot-mailcow:
+          condition: service_started
+        mysql-mailcow:
+          condition: service_started
+        acme-mailcow:
+          condition: service_started
+        redis-mailcow:
+          condition: service_started
       environment:
         - IPV6_NETWORK=${IPV6_NETWORK:-fd4d:6169:6c63:6f77::/64}
         - LOG_LINES=${LOG_LINES:-9999}
@@ -688,6 +734,16 @@ services:
         mailcow-network:
           aliases:
             - ofelia
+
+    init-mailcow:
+      image: alpine:latest
+      volumes:
+        - .:/mailcow
+      working_dir: /mailcow
+      entrypoint: /bin/sh
+      command: -c "apk add --no-network --no-cache bash openssl || true; chmod +x coolify-init.sh && ./coolify-init.sh"
+      networks:
+        - mailcow-network
 
 networks:
   mailcow-network:
